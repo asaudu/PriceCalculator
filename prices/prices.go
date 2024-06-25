@@ -4,38 +4,42 @@ import (
 	"fmt"
 
 	"addyCodes.com/price-calculator/conversion"
-	filemanager "addyCodes.com/price-calculator/fileManager"
+	"addyCodes.com/price-calculator/prices/iomanager"
 )
 
 type TaxIncludedPriceJob struct {
 	//implementing struct tags, "-" means exclude
-	IOManager filemanager.FileManager `json:"-"`
+	IOManager iomanager.IOManager `json:"-"`
 	//the other struct tags simply format how the label appears
 	TaxRate           float64           `json:"tax_rate"`
 	InputPrices       []float64         `json:"input_prices"`
 	TaxIncludedPrices map[string]string `json:"tax_included_prices"`
 }
 
-func (job *TaxIncludedPriceJob) LoadData() {
+func (job *TaxIncludedPriceJob) LoadData() error {
 
 	lines, err := job.IOManager.ReadLines()
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	prices, err := conversion.StringsToFloats(lines)
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	job.InputPrices = prices
+
+	return nil
 }
 
-func (job *TaxIncludedPriceJob) Process() {
-	job.LoadData()
+func (job *TaxIncludedPriceJob) Process() error {
+	err := job.LoadData()
+
+	if err != nil {
+		return err
+	}
 
 	result := make(map[string]string)
 
@@ -48,12 +52,12 @@ func (job *TaxIncludedPriceJob) Process() {
 	// the below line would overwrite the 1 result file with each job, so intead
 	// filemanager.WriteJSON("result.json", job)
 	//we implement fmt.Sprintf so we can generate a file with each job instead
-	job.IOManager.WriteResult(job)
+	return job.IOManager.WriteResult(job)
 }
 
-func NewTaxIncludedPriceJob(fm filemanager.FileManager, taxRate float64) *TaxIncludedPriceJob {
+func NewTaxIncludedPriceJob(iom iomanager.IOManager, taxRate float64) *TaxIncludedPriceJob {
 	return &TaxIncludedPriceJob{
-		IOManager:   fm,
+		IOManager:   iom,
 		InputPrices: []float64{10, 20, 30, 40},
 		TaxRate:     taxRate,
 	}
